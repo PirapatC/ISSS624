@@ -1,0 +1,23 @@
+---
+title: "Hands-on Exercise 1: Geospatial Data Wrangling Data with R"
+---
+
+## Overview 
+
+in this hands-on exercise, I learn how to import and wrangling geospatial data using appropriate R packages.
+
+## Getting Started 
+
+The code chuck below install and load sf and tidyverse packages into R environment
+
+```{R}
+pacman::p_load(sf, tidyverse)
+```
+
+## Importing Geospatial Data
+
+### Importing polygon feature data
+
+```{R}
+mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
+```
