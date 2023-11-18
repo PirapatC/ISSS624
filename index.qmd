@@ -1,5 +1,7 @@
 ---
 title: "ISSS624"
+data: "17 November 2023"
+date-modified: "last-modified"
 ---
 
 Welcome to SMU MITB Class
