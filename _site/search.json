@@ -144,20 +144,48 @@
     "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html",
     "title": "In-class_Exercise1",
     "section": "",
-    "text": "The code chunk below load the following package:\n\ntmap: for thematic mapping\nsf: for geospatial data handling\ntidyverse: for non-spatial data handling\n\n\npacman::p_load(tmap, sf, tidyverse)"
+    "text": "In this in-class exercise, you are required to prepare a choropleth map showing the distribution of passenger trips at planning sub-zone by integrating Passenger Volume by Origin Destination Bus Stops and bus stop data sets downloaded from LTA DataMall and Planning Sub-zone boundary of URA Master Plan 2019 downloaded from data.gov.sg.\nThe specific task of this in-class exercise are as follows:\n\nto import Passenger Volume by Origin Destination Bus Stops data set downloaded from LTA DataMall in to RStudio environment,\nto import geospatial data in ESRI shapefile format into sf data frame format,\nto perform data wrangling by using appropriate functions from tidyverse and sf pakcges, and\nto visualise the distribution of passenger trip by using tmap methods and functions."
   },
   {
     "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#getting-started",
     "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#getting-started",
     "title": "In-class_Exercise1",
-    "section": "",
-    "text": "The code chunk below load the following package:\n\ntmap: for thematic mapping\nsf: for geospatial data handling\ntidyverse: for non-spatial data handling\n\n\npacman::p_load(tmap, sf, tidyverse)"
+    "section": "Getting Started",
+    "text": "Getting Started\nThe code chunk below load the following package:\n\ntmap: for thematic mapping\nsf: for geospatial data handling\ntidyverse: for non-spatial data handling\n\n\npacman::p_load(tmap, sf, tidyverse)"
   },
   {
     "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#preparing-the-flow-data",
     "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#preparing-the-flow-data",
     "title": "In-class_Exercise1",
     "section": "Preparing the FLow Data",
-    "text": "Preparing the FLow Data\n\nImporting the OD data\nFirstly, we will import the Passenger Volume by Origin Destination Bus Stops data set downloaded from LTA DataMall by using ‘read_csv()’ of read package.\n\n# eval: false \nodbus &lt;- read_csv(\"data/aspatial/origin_destination_bus_202308.csv\")\n\nA quick check of odbus tibble data frame shows that the values\n\n# eval: false\nodbus$ORIGIN_PT_CODE &lt;-\nas.factor(odbus$ORIGIN_PT_CODE)\nodbus$DESTINATION_PT_CODE &lt;-\nas.factor(odbus$DESTINATION_PT_CODE) \n\n\n# eval: false \norigin_7_9 &lt;- odbus %&gt;%\n  filter(DAY_TYPE == \"WEEKDAY\") %&gt;%\n  filter(TIME_PER_HOUR &gt;= 7 &\n         TIME_PER_HOUR &lt;= 9) %&gt;%\n  group_by(ORIGIN_PT_CODE) %&gt;%\n  summarise(TRIPS = sum(TOTAL_TRIPS))\n\nTwo geospatial data will be used in this exerise\n\n# eval: false \nbusstop &lt;- st_read(dsn = \"data/geospatial\", layer = \"BusStop\") %&gt;% st_transform(crs = 3414)\n\nReading layer `BusStop' from data source \n  `/Users/pirapatchaiya/Library/Mobile Documents/com~apple~CloudDocs/SMU MITB NOV TERM/Applied Geospatial Analytics/ISSS624/ISSS624/In-class_Ex/In-class_Ex1/data/geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 5161 features and 3 fields\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: 3970.122 ymin: 26482.1 xmax: 48284.56 ymax: 52983.82\nProjected CRS: SVY21\n\n\n\nmpsz &lt;- st_read(dsn = \"data/geospatial\", layer = \"MPSZ-2019\") %&gt;% \n  st_transform(crs = 3414)\n\nReading layer `MPSZ-2019' from data source \n  `/Users/pirapatchaiya/Library/Mobile Documents/com~apple~CloudDocs/SMU MITB NOV TERM/Applied Geospatial Analytics/ISSS624/ISSS624/In-class_Ex/In-class_Ex1/data/geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 332 features and 6 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 103.6057 ymin: 1.158699 xmax: 104.0885 ymax: 1.470775\nGeodetic CRS:  WGS 84"
+    "text": "Preparing the FLow Data\n\nImporting the OD data\nFirstly, we will import the Passenger Volume by Origin Destination Bus Stops data set downloaded from LTA DataMall by using ‘read_csv()’ of read package.\n\n# eval: false \nodbus &lt;- read_csv(\"data/aspatial/origin_destination_bus_202308.csv\")\n\nA quick check of odbus tibble data frame shows that the values in OROGIN_PT_CODE and DESTINATON_PT_CODE are in numeric data type.\n\n# eval: false\nodbus$ORIGIN_PT_CODE &lt;-\nas.factor(odbus$ORIGIN_PT_CODE)\nodbus$DESTINATION_PT_CODE &lt;-\nas.factor(odbus$DESTINATION_PT_CODE) \n\n\n\nExtracting the study data\n\n# eval: false \norigin_7_9 &lt;- odbus %&gt;%\n  filter(DAY_TYPE == \"WEEKDAY\") %&gt;%\n  filter(TIME_PER_HOUR &gt;= 7 &\n         TIME_PER_HOUR &lt;= 9) %&gt;%\n  group_by(ORIGIN_PT_CODE) %&gt;%\n  summarise(TRIPS = sum(TOTAL_TRIPS))\n\nIt should look similar to the data table below.\nWe will save the output in rds format for future used.\n\nwrite_rds(origin_7_9, \"data/rds/origin7_9.rds\")\n\nThe code chunk below will be used to import the save origin7_9.rds into R environment.\n\norigin7_9 &lt;- read_rds(\"data/rds/origin7_9.rds\")\n\nTwo geospatial data will be used in this exerise"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#the-task",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#the-task",
+    "title": "In-class_Exercise1",
+    "section": "",
+    "text": "In this in-class exercise, you are required to prepare a choropleth map showing the distribution of passenger trips at planning sub-zone by integrating Passenger Volume by Origin Destination Bus Stops and bus stop data sets downloaded from LTA DataMall and Planning Sub-zone boundary of URA Master Plan 2019 downloaded from data.gov.sg.\nThe specific task of this in-class exercise are as follows:\n\nto import Passenger Volume by Origin Destination Bus Stops data set downloaded from LTA DataMall in to RStudio environment,\nto import geospatial data in ESRI shapefile format into sf data frame format,\nto perform data wrangling by using appropriate functions from tidyverse and sf pakcges, and\nto visualise the distribution of passenger trip by using tmap methods and functions."
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#working-with-geospatial-data",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#working-with-geospatial-data",
+    "title": "In-class_Exercise1",
+    "section": "Working with Geospatial Data",
+    "text": "Working with Geospatial Data\nIn this section, you are required to import two shapefile into RStudio, they are:\n\nBusStop: This data provides the location of bus stop as at last quarter of 2022.\nMPSZ-2019: This data provides the sub-zone boundary of URA Master Plan 2019.\n\n\nImporting geospatial data\n\n# eval: false \nbusstop &lt;- st_read(dsn = \"data/geospatial\", layer = \"BusStop\") %&gt;% st_transform(crs = 3414)\n\nReading layer `BusStop' from data source \n  `/Users/pirapatchaiya/Library/Mobile Documents/com~apple~CloudDocs/SMU MITB NOV TERM/Applied Geospatial Analytics/ISSS624/ISSS624/In-class_Ex/In-class_Ex1/data/geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 5161 features and 3 fields\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: 3970.122 ymin: 26482.1 xmax: 48284.56 ymax: 52983.82\nProjected CRS: SVY21\n\n\n\nmpsz &lt;- st_read(dsn = \"data/geospatial\", layer = \"MPSZ-2019\") %&gt;% \n  st_transform(crs = 3414)\n\nReading layer `MPSZ-2019' from data source \n  `/Users/pirapatchaiya/Library/Mobile Documents/com~apple~CloudDocs/SMU MITB NOV TERM/Applied Geospatial Analytics/ISSS624/ISSS624/In-class_Ex/In-class_Ex1/data/geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 332 features and 6 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 103.6057 ymin: 1.158699 xmax: 104.0885 ymax: 1.470775\nGeodetic CRS:  WGS 84"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#geospatial-data-wrangling",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#geospatial-data-wrangling",
+    "title": "In-class_Exercise1",
+    "section": "Geospatial data wrangling",
+    "text": "Geospatial data wrangling\n\nCombining Busstop and mpsz\nCode chunk below populates the planning subzone code (i.e. SUBZONE_C) of mpsz sf data frame into busstop sf data frame.\n\nbusstop_mpsz &lt;- st_intersection(busstop, mpsz) %&gt;%\n  select(BUS_STOP_N, SUBZONE_C) %&gt;%\n  st_drop_geometry()\n\nBefore moving to the next step, it is wise to save the output into rds format.\n\nwrite_rds(busstop_mpsz, \"data/rds/busstop_mpsz.csv\")  \n\n\norigin_data &lt;- left_join(origin7_9 , busstop_mpsz,\n            by = c(\"ORIGIN_PT_CODE\" = \"BUS_STOP_N\")) %&gt;%\n  rename(ORIGIN_BS = ORIGIN_PT_CODE,\n         ORIGIN_SZ = SUBZONE_C)\n\nBefore continue, it is a good practice for us to check for duplicating records.\n\nduplicate &lt;- origin_data %&gt;%\n  group_by_all() %&gt;%\n  filter(n()&gt;1) %&gt;%\n  ungroup()\n\nIf duplicated records are found, the code chunk below will be used to retain the unique records.\n\norigin_data &lt;- unique(origin_data)\n\nIt will be a good practice to confirm if the duplicating records issue has been addressed fully.\n\nmpsz_origtrip &lt;- left_join(mpsz, \n                           origin_data,\n                           by = c(\"SUBZONE_C\" = \"ORIGIN_SZ\"))"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#choropleth-visualisation",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#choropleth-visualisation",
+    "title": "In-class_Exercise1",
+    "section": "Choropleth Visualisation",
+    "text": "Choropleth Visualisation\n\ntm_shape(mpsz_origtrip)+\n  tm_fill(\"TRIPS\", \n          style = \"quantile\", \n          palette = \"Blues\",\n          title = \"Passenger trips\") +\n  tm_layout(main.title = \"Passenger trips generated at planning sub-zone level\",\n            main.title.position = \"center\",\n            main.title.size = 1.2,\n            legend.height = 0.45, \n            legend.width = 0.35,\n            frame = TRUE) +\n  tm_borders(alpha = 0.5) +\n  tm_compass(type=\"8star\", size = 2) +\n  tm_scale_bar() +\n  tm_grid(alpha =0.2) +\n  tm_credits(\"Source: Planning Sub-zone boundary from Urban Redevelopment Authorithy (URA)\\n and Population data from Department of Statistics DOS\", \n             position = c(\"left\", \"bottom\"))"
   }
 ]
