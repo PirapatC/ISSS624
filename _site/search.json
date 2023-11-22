@@ -306,5 +306,19 @@
     "title": "Hands-on Exercise 1",
     "section": "Getting started",
     "text": "Getting started"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2.html",
+    "href": "Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2.html",
+    "title": "Hands-on_Ex2: Spatial Weights and Applications",
+    "section": "",
+    "text": "import geospatial data using appropriate function(s) of sf package,\nimport csv file using appropriate function of readr package,\nperform relational join using appropriate join function of dplyr package,\ncompute spatial weights using appropriate functions of spdep package, and\ncalculate spatially lagged variables using appropriate functions of spdep package."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2.html#overview",
+    "href": "Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2.html#overview",
+    "title": "Hands-on_Ex2: Spatial Weights and Applications",
+    "section": "",
+    "text": "import geospatial data using appropriate function(s) of sf package,\nimport csv file using appropriate function of readr package,\nperform relational join using appropriate join function of dplyr package,\ncompute spatial weights using appropriate functions of spdep package, and\ncalculate spatially lagged variables using appropriate functions of spdep package."
   }
 ]

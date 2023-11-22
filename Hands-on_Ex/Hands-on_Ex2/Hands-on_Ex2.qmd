@@ -1,3 +1,17 @@
 ---
 title: "Hands-on_Ex2: Spatial Weights and Applications"
 ---
+
+# **1  Spatial Weights and Applications**
+
+## **1.1 Overview**
+
+-   import geospatial data using appropriate function(s) of **sf** package,
+
+-   import csv file using appropriate function of **readr** package,
+
+-   perform relational join using appropriate join function of **dplyr** package,
+
+-   compute spatial weights using appropriate functions of **spdep** package, and
+
+-   calculate spatially lagged variables using appropriate functions of **spdep** package.
