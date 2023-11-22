@@ -4,12 +4,4 @@ data: "17 November 2023"
 date-modified: "last-modified"
 ---
 
-Welcome to SMU MITB Class
-
-This is the first week
-
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
-
-```{r}
-1 + 1
-```
+Welcome to SMU MITB ISSS624 Applied Geospatial Analytics Class
