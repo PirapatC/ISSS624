@@ -15,3 +15,5 @@ title: "Hands-on_Ex2: Spatial Weights and Applications"
 -   compute spatial weights using appropriate functions of **spdep** package, and
 
 -   calculate spatially lagged variables using appropriate functions of **spdep** package.
+
+2
