@@ -4,6 +4,4 @@ title: "About"
 
 About this site
 
-```{r}
-1 + 1
-```
+This site is created by Pirapat C for SMU MITB ISSS624 Applied Geospatial Analytics class.
