@@ -12,7 +12,7 @@ editor: visual
 
 # In-Class Exercise 2: Spatial Weights, GLSA, EHSA
 
-## Getting started 
+## Getting started
 
 Import R packages
 
@@ -20,7 +20,7 @@ Import R packages
 pacman::p_load(tmap, sf, sfdep, tidyverse, knitr, plotly)
 ```
 
-## The Data 
+## The Data
 
 Import data
 
@@ -35,7 +35,7 @@ hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 GDPPC <- read_csv("data/aspatial/Hunan_GDPPC.csv")
 ```
 
-## Combining both data frame by using left join 
+## Combining both data frame by using left join
 
 ```{r}
 hunan_GDPPC <- left_join(hunan,hunan2012)%>%
@@ -65,7 +65,7 @@ tm_shape(hunan_GDPPC) +
 
 ## **Deriving Contiguity Spatial Weights**
 
-### **Identifying contiguity neighbours: Queen\'s method**
+### **Identifying contiguity neighbours: Queen's method**
 
 ```{r}
 nb_queen <- hunan_GDPPC %>% 
@@ -82,7 +82,7 @@ kable(head(nb_queen,
            n=10))
 ```
 
-### **Identify contiguity neighbours: Rooks\' method**
+### **Identify contiguity neighbours: Rooks' method**
 
 ```{r}
 nb_rook <- hunan_GDPPC %>% 
@@ -102,9 +102,9 @@ nb2_queen <-  hunan_GDPPC %>%
 nb2_queen
 ```
 
-## **Deriving contiguity weights: Queen\'s method**
+## **Deriving contiguity weights: Queen's method**
 
-### **Identifying contiguity neighbours: Queen\'s method**
+### **Identifying contiguity neighbours: Queen's method**
 
 ```{r}
 nb_queen <- hunan_GDPPC %>% 
@@ -124,7 +124,7 @@ nb_queen
 kable(head(nb_queen, n=10))
 ```
 
-### **Identify contiguity neighbours: Rooks\' method**
+### **Identify contiguity neighbours: Rooks' method**
 
 ```{r}
 nb_rook <- hunan_GDPPC %>% 
@@ -146,7 +146,7 @@ nb2_queen <-  hunan_GDPPC %>%
 nb2_queen
 ```
 
-## **Deriving contiguity weights: Queen\'s method**
+## **Deriving contiguity weights: Queen's method**
 
 ```{r}
 wm_q <- hunan_GDPPC %>%
@@ -199,7 +199,7 @@ wm_idw <- hunan_GDPPC %>%
          .before = 1)
 ```
 
-## **Computing Global Moran\' I**
+## **Computing Global Moran' I**
 
 ```{r}
 moranI <- global_moran(wm_q$GDPPC,
@@ -208,7 +208,7 @@ moranI <- global_moran(wm_q$GDPPC,
 glimpse(moranI)
 ```
 
-### **Performing Global Moran\'sI test**
+### **Performing Global Moran'sI test**
 
 ```{r}
 global_moran_test(wm_q$GDPPC,
@@ -216,7 +216,7 @@ global_moran_test(wm_q$GDPPC,
                        wm_q$wt)
 ```
 
-### **Performing Global Moran\'I permutation t**
+### **Performing Global Moran'I permutation t**
 
 ```{r}
 set.seed(1234)
@@ -229,7 +229,7 @@ global_moran_perm(wm_q$GDPPC,
                   nsim = 99)
 ```
 
-## **Computing local Moran\'s I**
+## **Computing local Moran's I**
 
 ```{r}
 lisa <- wm_q %>%
@@ -239,7 +239,7 @@ lisa <- wm_q %>%
   unnest(local_moran)
 ```
 
-### **Visualising local Moran\'s I**
+### **Visualising local Moran's I**
 
 ```{r}
 tmap_mode("plot")
@@ -251,7 +251,7 @@ tm_shape(lisa) +
             main.title.size = 0.8)
 ```
 
-### **Visualising p-value of local Moran\'s I**
+### **Visualising p-value of local Moran's I**
 
 ```{r}
 tmap_mode("plot")
@@ -262,7 +262,7 @@ tm_shape(lisa) +
             main.title.size = 0.8)
 ```
 
-### **Visuaising local Moran\'s I and p-value**
+### **Visuaising local Moran's I and p-value**
 
 ```{r}
 tmap_mode("plot")
@@ -377,7 +377,7 @@ tm_shape(HCSA_sig) +
 
 # **Emerging Hot Spot Analysis**
 
-## Creating a Time Series Cube 
+## Creating a Time Series Cube
 
 ```{r}
 GDPPC_st <- spacetime(GDPPC, hunan,
@@ -389,7 +389,7 @@ GDPPC_st <- spacetime(GDPPC, hunan,
 is_spacetime_cube(GDPPC_st)
 ```
 
-## Deriving the spatial weights 
+## Deriving the spatial weights
 
 ```{r}
 GDPPC_nb <- GDPPC_st %>%
