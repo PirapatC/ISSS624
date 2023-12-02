@@ -363,7 +363,7 @@ compare_performance(model_list,
 
 ### **1.6.10 Visualising fitted**
 
-```{r}
+```{R}
 df <- as.data.frame(uncSIM$fitted.values) %>%
   round(digits = 0)
 ```
