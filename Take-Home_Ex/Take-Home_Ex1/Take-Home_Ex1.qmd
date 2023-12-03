@@ -499,9 +499,9 @@ tmap_arrange(weekday_morning_log, weekday_afternoon_log,
 
 When the number is logarithmic, the value of the total number of trips for each hexagon is displayed in the figure above. Additionally, there aren't many differences between them.
 
-## **Local Indicators of Spatial Association (LISA) Analysis**
+# **Local Indicators of Spatial Association (LISA) Analysis**
 
-### **Spatial Weight**
+## **Spatial Weight**
 
 ```{r}
 wm_idw <- Trips %>%
@@ -513,9 +513,9 @@ wm_idw <- Trips %>%
   mutate(grid_id = 1:length(Trips$grid_id))
 ```
 
-### **Local Moran**
+## **Local Moran**
 
-#### Weekday Morning
+### Weekday Morning 
 
 ```{r}
 lisa_WDM <- wm_idw %>% 
@@ -559,7 +559,7 @@ tm_shape(lisa_sig_WDM) +
   tm_borders(alpha = 0.4)
 ```
 
-#### Weekday Afternoon
+### Weekday Afternoon
 
 ```{r}
 lisa_WDA <- wm_idw %>% 
@@ -603,7 +603,7 @@ tm_shape(lisa_sig_WDA) +
   tm_borders(alpha = 0.4)
 ```
 
-#### Weekend Morning 
+### Weekend Morning 
 
 ```{r}
 lisa_WEM <- wm_idw %>% 
@@ -647,7 +647,7 @@ tm_shape(lisa_sig_WEM) +
   tm_borders(alpha = 0.4)
 ```
 
-#### Weekend Evening
+### Weekend Evening
 
 ```{r}
 lisa_WEE <- wm_idw %>% 
@@ -691,7 +691,7 @@ tm_shape(lisa_sig_WEE) +
   tm_borders(alpha = 0.4)
 ```
 
-#### LISA Map 
+### LISA Map 
 
 Summary all the 4 category, below is the 4 LISA Map in 4 category (weekday_morning, weekday_afternoon, weekend_morning, weekend_evening) using tmap_arrange.
 
@@ -701,7 +701,7 @@ tmap_arrange(weekday_morning_localmoran, weekday_afternoon_localmoran,
              ncol = 2, nrow = 2)
 ```
 
-## Conclusion 
+# Conclusion 
 
 Using the inverse distance weight, the map above displays the local Moran relationship between each hexagonal grid. The 2 top row is weekday morning and weekday afternoon. The 2 in bottom row is weekend morning and weekend afternoon.
 
