@@ -51,6 +51,8 @@ tm_shape(BusStop) +
 
 ### **Hexagonal Grid Creation**
 
+The code chunk below uses the sf package to create a grid of polygons around bus stops with a specific cell size and then converts this grid into an sf object while assigning unique grid IDs to each cell.
+
 ```{r}
 grid = st_make_grid(BusStop, c(500), what = "polygons", square = FALSE)
 # sf and add grid ID
@@ -58,6 +60,8 @@ grid_sf = st_sf(grid) %>%
   # add grid ID
   mutate(grid_id = 1:length(lengths(grid)))
 ```
+
+This code chunk below determines how many bus stops intersect with each grid cell. Then, it filters out grid cells that don't contain any bus stops, keeping only those cells with at least one bus stop inside.
 
 ```{r}
 grid_sf$n_colli = lengths(st_intersects(grid_sf, BusStop))
@@ -94,7 +98,7 @@ tm_shape(grid_count) +
 
 Next, as we can see there are some busstop that is outside Singapore. In this case it will be exclude.
 
-Removing the Bus Stops outside Singapore
+Removing the Bus Stops outside Singapore using the code below
 
 ```{r}
 grid_count_rm <- grid_count %>%
@@ -213,7 +217,7 @@ grid_bus$BUS_STOP_N <- as.factor(grid_bus$BUS_STOP_N)
 
 ### **Joining aspatial and geospatial**
 
-Joining both data together
+Joining both aspatial and geospatail data together
 
 ```{r}
 Trips <- left_join(BusTrips_comb,grid_bus,
@@ -514,7 +518,7 @@ wm_idw <- Trips %>%
 #### Weekday Morning
 
 ```{r}
-lisa <- wm_idw %>% 
+lisa_WDM <- wm_idw %>% 
   mutate(local_moran = local_moran(
     WeekdayMorningTrips, nb, wts, nsim = 99, na.action=na.pass),
          .before = 1) %>%
@@ -522,7 +526,7 @@ lisa <- wm_idw %>%
 ```
 
 ```{r}
-ii_val_moran <- tm_shape(lisa) +
+ii_val_moran_WDM <- tm_shape(lisa_WDM) +
   tm_fill("ii") + 
   tm_borders(alpha = 0.5) +
   tm_view(set.zoom.limits = c(6,8)) +
@@ -531,7 +535,7 @@ ii_val_moran <- tm_shape(lisa) +
 ```
 
 ```{r}
-p_val_moran <- tm_shape(lisa) +
+p_val_moran_WDM <- tm_shape(lisa_WDM) +
   tm_fill("p_ii_sim") + 
   tm_borders(alpha = 0.5) +
    tm_layout(main.title = "p-value of local Moran's I",
@@ -539,26 +543,26 @@ p_val_moran <- tm_shape(lisa) +
 ```
 
 ```{r}
-tmap_arrange(ii_val_moran, p_val_moran, ncol = 2)
+tmap_arrange(ii_val_moran_WDM, p_val_moran_WDM, ncol = 2)
 ```
 
 ```{r}
-lisa_sig <- lisa  %>%
+lisa_sig_WDM <- lisa_WDM  %>%
   filter(p_ii_sim < 0.05)
 pal <- RColorBrewer::brewer.pal("Set1", n = 5)
 
-tm_shape(lisa) +
+weekday_morning_localmoran <- tm_shape(lisa_WDM) +
   tm_polygons() +
   tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig) +
-  tm_fill("mean", palette = pal ) + 
+tm_shape(lisa_sig_WDM) +
+  tm_fill("mean", palette = pal , title = "Weekday Morning Trips") + 
   tm_borders(alpha = 0.4)
 ```
 
 #### Weekday Afternoon
 
 ```{r}
-lisa <- wm_idw %>% 
+lisa_WDA <- wm_idw %>% 
   mutate(local_moran = local_moran(
     WeekdayAfternoonTrips, nb, wts, nsim = 99, na.action=na.pass),
          .before = 1) %>%
@@ -566,7 +570,7 @@ lisa <- wm_idw %>%
 ```
 
 ```{r}
-ii_val_moran <- tm_shape(lisa) +
+ii_val_moran_WDA <- tm_shape(lisa_WDA) +
   tm_fill("ii") + 
   tm_borders(alpha = 0.5) +
   tm_view(set.zoom.limits = c(6,8)) +
@@ -575,7 +579,7 @@ ii_val_moran <- tm_shape(lisa) +
 ```
 
 ```{r}
-p_val_moran <- tm_shape(lisa) +
+p_val_moran_WDA <- tm_shape(lisa_WDA) +
   tm_fill("p_ii_sim") + 
   tm_borders(alpha = 0.5) +
    tm_layout(main.title = "p-value of local Moran's I",
@@ -583,26 +587,26 @@ p_val_moran <- tm_shape(lisa) +
 ```
 
 ```{r}
-tmap_arrange(ii_val_moran, p_val_moran, ncol = 2)
+tmap_arrange(ii_val_moran_WDA, p_val_moran_WDA, ncol = 2)
 ```
 
 ```{r}
-lisa_sig <- lisa  %>%
+lisa_sig_WDA <- lisa_WDA  %>%
   filter(p_ii_sim < 0.05)
 pal <- RColorBrewer::brewer.pal("Set1", n = 5)
 
-tm_shape(lisa) +
+weekday_afternoon_localmoran <- tm_shape(lisa_sig_WDA) +
   tm_polygons() +
   tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig) +
-  tm_fill("mean", palette = pal ) + 
+tm_shape(lisa_sig_WDA) +
+  tm_fill("mean", palette = pal , title = "Weekday Afternoon Trips") + 
   tm_borders(alpha = 0.4)
 ```
 
 #### Weekend Morning 
 
 ```{r}
-lisa <- wm_idw %>% 
+lisa_WEM <- wm_idw %>% 
   mutate(local_moran = local_moran(
     WeekendMorningTrips, nb, wts, nsim = 99, na.action=na.pass),
          .before = 1) %>%
@@ -610,7 +614,7 @@ lisa <- wm_idw %>%
 ```
 
 ```{r}
-ii_val_moran <- tm_shape(lisa) +
+ii_val_moran_WEM <- tm_shape(lisa_WEM) +
   tm_fill("ii") + 
   tm_borders(alpha = 0.5) +
   tm_view(set.zoom.limits = c(6,8)) +
@@ -619,7 +623,7 @@ ii_val_moran <- tm_shape(lisa) +
 ```
 
 ```{r}
-p_val_moran <- tm_shape(lisa) +
+p_val_moran_WEM <- tm_shape(lisa_WEM) +
   tm_fill("p_ii_sim") + 
   tm_borders(alpha = 0.5) +
    tm_layout(main.title = "p-value of local Moran's I",
@@ -627,26 +631,26 @@ p_val_moran <- tm_shape(lisa) +
 ```
 
 ```{r}
-tmap_arrange(ii_val_moran, p_val_moran, ncol = 2)
+tmap_arrange(ii_val_moran_WEM, p_val_moran_WEM, ncol = 2)
 ```
 
 ```{r}
-lisa_sig <- lisa  %>%
+lisa_sig_WEM <- lisa_WEM  %>%
   filter(p_ii_sim < 0.05)
 pal <- RColorBrewer::brewer.pal("Set1", n = 5)
 
-tm_shape(lisa) +
+weekend_morning_localmoran <- tm_shape(lisa_WEM) +
   tm_polygons() +
   tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig) +
-  tm_fill("mean", palette = pal ) + 
+tm_shape(lisa_sig_WEM) +
+  tm_fill("mean", palette = pal , title = "Weekend Morning Trips") + 
   tm_borders(alpha = 0.4)
 ```
 
 #### Weekend Evening
 
 ```{r}
-lisa <- wm_idw %>% 
+lisa_WEE <- wm_idw %>% 
   mutate(local_moran = local_moran(
     WeekendEveningTrips, nb, wts, nsim = 99, na.action=na.pass),
          .before = 1) %>%
@@ -654,7 +658,7 @@ lisa <- wm_idw %>%
 ```
 
 ```{r}
-ii_val_moran <- tm_shape(lisa) +
+ii_val_moran_WEE <- tm_shape(lisa_WEE) +
   tm_fill("ii") + 
   tm_borders(alpha = 0.5) +
   tm_view(set.zoom.limits = c(6,8)) +
@@ -663,7 +667,7 @@ ii_val_moran <- tm_shape(lisa) +
 ```
 
 ```{r}
-p_val_moran <- tm_shape(lisa) +
+p_val_moran_WEE <- tm_shape(lisa_WEE) +
   tm_fill("p_ii_sim") + 
   tm_borders(alpha = 0.5) +
    tm_layout(main.title = "p-value of local Moran's I",
@@ -671,18 +675,36 @@ p_val_moran <- tm_shape(lisa) +
 ```
 
 ```{r}
-tmap_arrange(ii_val_moran, p_val_moran, ncol = 2)
+tmap_arrange(ii_val_moran_WEE, p_val_moran_WEE, ncol = 2)
 ```
 
 ```{r}
-lisa_sig <- lisa  %>%
+lisa_sig_WEE <- lisa_WEE  %>%
   filter(p_ii_sim < 0.05)
 pal <- RColorBrewer::brewer.pal("Set1", n = 5)
 
-tm_shape(lisa) +
+weekend_evening_localmoran <- tm_shape(lisa_WEE) +
   tm_polygons() +
   tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig) +
-  tm_fill("mean", palette = pal ) + 
+tm_shape(lisa_sig_WEE) +
+  tm_fill("mean", palette = pal , title = "Weekend Evening Trips") + 
   tm_borders(alpha = 0.4)
 ```
+
+#### LISA Map 
+
+Summary all the 4 category, below is the 4 LISA Map in 4 category (weekday_morning, weekday_afternoon, weekend_morning, weekend_evening) using tmap_arrange.
+
+```{r}
+tmap_arrange(weekday_morning_localmoran, weekday_afternoon_localmoran,
+             weekend_morning_localmoran, weekend_evening_localmoran,
+             ncol = 2, nrow = 2)
+```
+
+## Conclusion 
+
+Using the inverse distance weight, the map above displays the local Moran relationship between each hexagonal grid. The 2 top row is weekday morning and weekday afternoon. The 2 in bottom row is weekend morning and weekend afternoon.
+
+From the graph above compare the different between weekday and weekend. On weekday most of the clustering is Low-High follow by High-Low, there is only on Low-Low on weekday morning. For Weekend, there are more Low-Low and High-High compare to weekday. There is more mix cluster on weekend.
+
+The fact that individuals left for work or school in the morning and returned home in the afternoon lends credence to both of the weekday graphs. As it can observed from the map, on weekday mornings the spread occurs more in the suburbs of Singapore, however in the afternoon it is closer to the city core.The weekend graphs show that throughout the morning, the most of the dispersion and clustering occurred in the central region, and during the night, it was slightly dispersed.
