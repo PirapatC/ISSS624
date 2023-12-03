@@ -1,3 +1,678 @@
 ---
 title: "Take-Home Exercise 1"
+data: "2 December 2023"
+date-modified: "last-modified"
+format: html
+execute: 
+  echo: true
+  eval: true
+  warning: false
+editor: visual
 ---
+
+## **Setting the Scene**
+
+As city-wide urban infrastructures such as buses, taxis, mass rapid transit, public utilities and roads become digital, the datasets obtained can be used as a framework for tracking movement patterns through space and time. This is particularly true with the recent trend of massive deployment of pervasive computing technologies such as GPS and RFID on the vehicles. For example, routes and ridership data were collected with the use of smart cards and Global Positioning System (GPS) devices available on the public buses. These massive movement data collected are likely to contain structure and patterns that provide useful information about characteristics of the measured phenomena. The identification, analysis and comparison of such patterns will provide greater insights on human movement and behaviours within a city. These understandings will potentially contribute to a better urban management and useful information for urban transport services providers both from the private and public sector to formulate informed decision to gain competitive advantage.
+
+In real-world practices, the use of these massive locational aware data, however, tend to be confined to simple tracking and mapping with GIS applications. This is mainly due to a general lack of functions in conventional GIS which is capable of analysing and model spatial and spatio-temporal data effectively.
+
+## **Objectives**
+
+## Getting started
+
+```{r}
+pacman::p_load(tmap, sf, sfdep, dplyr, mapview, ggpubr, tidyverse)
+```
+
+### **Geospatial Data**
+
+Import the BusStop data
+
+```{r}
+BusStop <- st_read(dsn = "data/geospatial",
+                   layer = "BusStop") %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+tmap_mode("view")
+```
+
+```{r}
+tm_shape(BusStop) + 
+  tm_dots()
+```
+
+### **Hexagonal Grid Creation**
+
+```{r}
+grid = st_make_grid(BusStop, c(500), what = "polygons", square = FALSE)
+# sf and add grid ID
+grid_sf = st_sf(grid) %>%
+  # add grid ID
+  mutate(grid_id = 1:length(lengths(grid)))
+```
+
+```{r}
+grid_sf$n_colli = lengths(st_intersects(grid_sf, BusStop))
+
+# remove grid without value of 0 (i.e. no points in side that grid)
+grid_count = filter(grid_sf,n_colli > 0 )
+```
+
+```{r}
+tmap_mode("view")
+```
+
+Plotting hexagon map
+
+```{r}
+tm_shape(grid_count) +
+  tm_fill(
+    col = "n_colli",  
+    palette = "Blues",
+    style = "cont",
+    title = "Number of collisions",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+    popup.vars = c(
+      "Number of collisions: " = "n_colli"
+    ),
+    popup.format = list(
+      n_colli = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)
+```
+
+Next, as we can see there are some busstop that is outside Singapore. In this case it will be exclude.
+
+Removing the busstop outside Singapore
+
+```{r}
+grid_count_rm <- grid_count %>%
+  filter(!grid_id == 1767,
+         !grid_id == 2073,
+         !grid_id == 2135,
+         !grid_id == 2104)
+```
+
+```{r}
+tm_shape(grid_count_rm) +
+  tm_fill(
+    col = "n_colli",  
+    palette = "Blues",
+    style = "cont",
+    title = "Number of collisions",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+    popup.vars = c(
+      "Number of collisions: " = "n_colli"
+    ),
+    popup.format = list(
+      n_colli = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)
+```
+
+### **Aspatial Data**
+
+Import the aspatial data into R
+
+```{r}
+busTrips <- read_csv("data/aspatial/origin_destination_bus_202310.csv")
+```
+
+```{r}
+# busTrips <- read_csv("data/aspatial/origin_destination_bus_202308.csv")
+# busTrips <- read_csv("data/aspatial/origin_destination_bus_202309.csv")
+
+busTrips$ORIGIN_PT_CODE <- as.factor(busTrips$ORIGIN_PT_CODE)
+busTrips$DESTINATION_PT_CODE <- as.factor(busTrips$DESTINATION_PT_CODE)
+```
+
+## Data Wrangling 
+
+### **Aspatial Data Wrangling**
+
+Calculating bus trip in weekday and morning peak hour
+
+```{r}
+busTripsDayMorning <- busTrips %>%
+  filter(DAY_TYPE == "WEEKDAY", 
+         TIME_PER_HOUR >= 6, 
+         TIME_PER_HOUR <= 9) %>%
+  group_by(ORIGIN_PT_CODE) %>%
+  summarise(WeekdayMorningTrips = sum(TOTAL_TRIPS))
+```
+
+Calculating bus trip in weekday and afternoon peak hour
+
+```{r}
+busTripsDayAfternoon <- busTrips %>%
+  filter(DAY_TYPE == "WEEKDAY", 
+         TIME_PER_HOUR >= 17, 
+         TIME_PER_HOUR <= 20) %>%
+  group_by(ORIGIN_PT_CODE) %>%
+  summarise(WeekdayAfternoonTrips = sum(TOTAL_TRIPS))
+```
+
+Calculating bus trip in weekend and morning peak hour
+
+```{r}
+busTripsEndMorning <- busTrips %>%
+  filter(DAY_TYPE == "WEEKENDS/HOLIDAY", 
+         TIME_PER_HOUR >= 11, 
+         TIME_PER_HOUR <= 14) %>%
+  group_by(ORIGIN_PT_CODE) %>%
+  summarise(WeekendMorningTrips = sum(TOTAL_TRIPS))
+```
+
+Calculating bus trip in weekend and evening peak hour
+
+```{r}
+busTripsEndEvening <- busTrips %>%
+  filter(DAY_TYPE == "WEEKENDS/HOLIDAY", 
+         TIME_PER_HOUR >= 16, 
+         TIME_PER_HOUR <= 19) %>%
+  group_by(ORIGIN_PT_CODE) %>%
+  summarise(WeekendEveningTrips = sum(TOTAL_TRIPS))
+```
+
+Joining all the Peak Trips
+
+```{r}
+BusTrips_comb <- busTripsDayMorning %>%
+  left_join(busTripsDayAfternoon) %>%
+  left_join(busTripsEndMorning) %>%
+  left_join(busTripsEndEvening)
+```
+
+### **Geospatial Data Wrangling**
+
+```{r}
+grid_bus <- st_join(grid_count_rm,BusStop,join = st_contains) %>%
+  unnest() %>%
+  select(grid_id,BUS_STOP_N)
+```
+
+```{r}
+grid_bus$BUS_STOP_N <- as.factor(grid_bus$BUS_STOP_N)
+```
+
+### **Joining aspatial and geospatial**
+
+```{r}
+Trips <- left_join(BusTrips_comb,grid_bus,
+                   by = c("ORIGIN_PT_CODE" = "BUS_STOP_N")) %>%
+  group_by(grid_id)%>%
+  summarise(WeekdayMorningTrips = sum(WeekdayMorningTrips),
+            WeekdayAfternoonTrips = sum(WeekdayAfternoonTrips),
+            WeekendMorningTrips = sum(WeekendMorningTrips),
+            WeekendEveningTrips = sum(WeekendEveningTrips))
+```
+
+```{r}
+Trips <- left_join(grid_count_rm,Trips) %>%
+  mutate (Total_Trips = WeekdayMorningTrips+WeekdayAfternoonTrips+WeekendMorningTrips  +WeekendEveningTrips) %>% 
+  rename (n_bus = n_colli)
+```
+
+Trip amount per bus stop, to determine whether the quantity of bus stations or whether it is indeed crowded.
+
+```{r}
+TripsPerBusStop <- Trips %>%
+  mutate (WeekdayMorningTrips = WeekdayMorningTrips/n_bus,
+          WeekdayAfternoonTrips = WeekdayAfternoonTrips/n_bus,
+          WeekendMorningTrips = WeekendMorningTrips/n_bus,
+          WeekendEveningTrips = WeekendEveningTrips/n_bus)
+```
+
+```{r}
+TripsLog <- Trips %>%
+  mutate (WeekdayMorningTrips = log(WeekdayMorningTrips),
+          WeekdayAfternoonTrips = log(WeekdayAfternoonTrips),
+          WeekendMorningTrips = log(WeekendMorningTrips),
+          WeekendEveningTrips = log(WeekendEveningTrips))
+```
+
+## **Visualising**
+
+```{r}
+tmap_mode("view")
+```
+
+The map below displays the total bus trip for each bus station of origin.
+
+```{r}
+tm_shape(Trips) +
+  tm_fill(
+    col = "Total_Trips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Total Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+    popup.format = list(
+      Total_Trips = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)
+```
+
+It is evident from the above plot of total trips that bus travel is dispersed throughout the nation. On the other hand, many clusters are visible.
+
+### **Total Trips**
+
+```{r}
+weekday_morning <- tm_shape(Trips) +
+  tm_fill(
+    col = "WeekdayMorningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekday Morning Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekday_afternoon <- tm_shape(Trips) +
+  tm_fill(
+    col = "WeekdayAfternoonTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekday Afternoon Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekend_morning <- tm_shape(Trips) +
+  tm_fill(
+    col = "WeekendMorningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekend Morning Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekend_evening <- tm_shape(Trips) +
+  tm_fill(
+    col = "WeekendEveningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekend Evening Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+tmap_mode("plot")
+```
+
+```{r}
+tmap_arrange(weekday_morning, weekday_afternoon, weekend_morning, weekend_evening, ncol=2, nrow=2)
+```
+
+The segmented trips in the map above are broken down into four sector: weekend morning, weekend afternoon, and weekend morning. The distinctions between them are negligible. On the east side, there is a noticeable difference, though. On weekends and weekdays, the east side quantile is lower in the evening or afternoon than it is in the morning. Additionally, it is evident in the central that in the afternoon and evening, their quantile is higher.
+
+### **Total Trips per Bus Stop**
+
+```{r}
+weekday_morning_per_stop <- tm_shape(TripsPerBusStop) +
+  tm_fill(
+    col = "WeekdayMorningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekday Morning Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekday_afternoon_per_stop <- tm_shape(TripsPerBusStop) +
+  tm_fill(
+    col = "WeekdayAfternoonTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekday Afternoon Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekend_morning_per_stop <- tm_shape(TripsPerBusStop) +
+  tm_fill(
+    col = "WeekendMorningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekend Morning Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekend_evening_per_stop <- tm_shape(TripsPerBusStop) +
+  tm_fill(
+    col = "WeekendEveningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekend Evening Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+tmap_mode("plot")
+```
+
+```{r}
+tmap_arrange(weekday_morning_per_stop, weekday_afternoon_per_stop,
+             weekend_morning_per_stop, weekend_evening_per_stop,
+            ncol=2, nrow=2) 
+```
+
+The diagram above demonstrates how the overall number of trips varies depending on the day and time of day. Each bus station in a hexagon has a different amount of total trips within it. Still, the outcomes are strikingly identical to the last one.
+
+### **Log value of trips**
+
+```{r}
+weekday_morning_log <- tm_shape(TripsLog) +
+  tm_fill(
+    col = "WeekdayMorningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekday Morning Trips per Bus Stop",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekday_afternoon_log <- tm_shape(TripsLog) +
+  tm_fill(
+    col = "WeekdayAfternoonTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekday Afternoon Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekend_morning_log <- tm_shape(TripsLog) +
+  tm_fill(
+    col = "WeekendMorningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekend Morning Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+weekend_evening_log <- tm_shape(TripsLog) +
+  tm_fill(
+    col = "WeekendEveningTrips",
+    palette = "Blues",
+    style = "quantile",
+    title = "Weekend Evening Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+  tm_legend(scale = 0.5)
+```
+
+```{r}
+tmap_mode("plot")
+```
+
+```{r}
+tmap_arrange(weekday_morning_log, weekday_afternoon_log,
+             weekend_morning_log, weekend_evening_log, ncol=2, nrow=2)
+```
+
+When the number is logarithmic, the value of the total number of trips for each hexagon is displayed in the figure above. Additionally, there aren't many differences between them.
+
+## **Local Indicators of Spatial Association (LISA) Analysis**
+
+### **Spatial Weight**
+
+```{r}
+wm_idw <- Trips %>%
+  mutate(nb = st_dist_band(grid),
+         wts = st_inverse_distance(nb, grid,
+                                   scale = 1,
+                                   alpha = 1),
+         .before = 1) %>%
+  mutate(grid_id = 1:length(Trips$grid_id))
+```
+
+### **Local Moran**
+
+#### Weekday Morning
+
+```{r}
+lisa <- wm_idw %>% 
+  mutate(local_moran = local_moran(
+    WeekdayMorningTrips, nb, wts, nsim = 99, na.action=na.pass),
+         .before = 1) %>%
+  unnest(local_moran)
+```
+
+```{r}
+ii_val_moran <- tm_shape(lisa) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Trip",
+            main.title.size = 0.8)
+```
+
+```{r}
+p_val_moran <- tm_shape(lisa) +
+  tm_fill("p_ii_sim") + 
+  tm_borders(alpha = 0.5) +
+   tm_layout(main.title = "p-value of local Moran's I",
+            main.title.size = 0.8)
+```
+
+```{r}
+tmap_arrange(ii_val_moran, p_val_moran, ncol = 2)
+```
+
+```{r}
+lisa_sig <- lisa  %>%
+  filter(p_ii_sim < 0.05)
+pal <- RColorBrewer::brewer.pal("Set1", n = 5)
+
+tm_shape(lisa) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig) +
+  tm_fill("mean", palette = pal ) + 
+  tm_borders(alpha = 0.4)
+```
+
+#### Weekday Afternoon
+
+```{r}
+lisa <- wm_idw %>% 
+  mutate(local_moran = local_moran(
+    WeekdayAfternoonTrips, nb, wts, nsim = 99, na.action=na.pass),
+         .before = 1) %>%
+  unnest(local_moran)
+```
+
+```{r}
+ii_val_moran <- tm_shape(lisa) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Trip",
+            main.title.size = 0.8)
+```
+
+```{r}
+p_val_moran <- tm_shape(lisa) +
+  tm_fill("p_ii_sim") + 
+  tm_borders(alpha = 0.5) +
+   tm_layout(main.title = "p-value of local Moran's I",
+            main.title.size = 0.8)
+```
+
+```{r}
+tmap_arrange(ii_val_moran, p_val_moran, ncol = 2)
+```
+
+```{r}
+lisa_sig <- lisa  %>%
+  filter(p_ii_sim < 0.05)
+pal <- RColorBrewer::brewer.pal("Set1", n = 5)
+
+tm_shape(lisa) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig) +
+  tm_fill("mean", palette = pal ) + 
+  tm_borders(alpha = 0.4)
+```
+
+#### Weekend Morning 
+
+```{r}
+lisa <- wm_idw %>% 
+  mutate(local_moran = local_moran(
+    WeekendMorningTrips, nb, wts, nsim = 99, na.action=na.pass),
+         .before = 1) %>%
+  unnest(local_moran)
+```
+
+```{r}
+ii_val_moran <- tm_shape(lisa) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Trip",
+            main.title.size = 0.8)
+```
+
+```{r}
+p_val_moran <- tm_shape(lisa) +
+  tm_fill("p_ii_sim") + 
+  tm_borders(alpha = 0.5) +
+   tm_layout(main.title = "p-value of local Moran's I",
+            main.title.size = 0.8)
+```
+
+```{r}
+tmap_arrange(ii_val_moran, p_val_moran, ncol = 2)
+```
+
+```{r}
+lisa_sig <- lisa  %>%
+  filter(p_ii_sim < 0.05)
+pal <- RColorBrewer::brewer.pal("Set1", n = 5)
+
+tm_shape(lisa) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig) +
+  tm_fill("mean", palette = pal ) + 
+  tm_borders(alpha = 0.4)
+```
+
+#### Weekend Evening
+
+```{r}
+lisa <- wm_idw %>% 
+  mutate(local_moran = local_moran(
+    WeekendEveningTrips, nb, wts, nsim = 99, na.action=na.pass),
+         .before = 1) %>%
+  unnest(local_moran)
+```
+
+```{r}
+ii_val_moran <- tm_shape(lisa) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Trip",
+            main.title.size = 0.8)
+```
+
+```{r}
+p_val_moran <- tm_shape(lisa) +
+  tm_fill("p_ii_sim") + 
+  tm_borders(alpha = 0.5) +
+   tm_layout(main.title = "p-value of local Moran's I",
+            main.title.size = 0.8)
+```
+
+```{r}
+tmap_arrange(ii_val_moran, p_val_moran, ncol = 2)
+```
+
+```{r}
+lisa_sig <- lisa  %>%
+  filter(p_ii_sim < 0.05)
+pal <- RColorBrewer::brewer.pal("Set1", n = 5)
+
+tm_shape(lisa) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig) +
+  tm_fill("mean", palette = pal ) + 
+  tm_borders(alpha = 0.4)
+```
