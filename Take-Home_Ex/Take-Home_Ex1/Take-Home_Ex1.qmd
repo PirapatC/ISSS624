@@ -701,7 +701,7 @@ tmap_arrange(weekday_morning_localmoran, weekday_afternoon_localmoran,
              ncol = 2, nrow = 2)
 ```
 
-# Conclusion 
+### Conclusion 
 
 Using the inverse distance weight, the map above displays the local Moran relationship between each hexagonal grid. The 2 top row is weekday morning and weekday afternoon. The 2 in bottom row is weekend morning and weekend afternoon.
 
