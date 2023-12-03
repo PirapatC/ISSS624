@@ -18,7 +18,11 @@ In real-world practices, the use of these massive locational aware data, however
 
 ## **Objectives**
 
+Exploratory Spatial Data Analysis (ESDA) hold tremendous potential to address complex problems facing society. Applying Geovisualisation and Analysis and Local Indicators of Spatial Association (GLISA) to undercover the spatial and spatio-temporal mobility patterns of public bus passengers in Singapore.
+
 ## Getting started
+
+Loading all the package that could be use for this into R.
 
 ```{r}
 pacman::p_load(tmap, sf, sfdep, dplyr, mapview, ggpubr, tidyverse)
@@ -26,7 +30,7 @@ pacman::p_load(tmap, sf, sfdep, dplyr, mapview, ggpubr, tidyverse)
 
 ### **Geospatial Data**
 
-Import the BusStop data
+Import the BusStop data (Geospatial Data)
 
 ```{r}
 BusStop <- st_read(dsn = "data/geospatial",
@@ -37,6 +41,8 @@ BusStop <- st_read(dsn = "data/geospatial",
 ```{r}
 tmap_mode("view")
 ```
+
+Plotting the raw data, this plot show all the BusStops location
 
 ```{r}
 tm_shape(BusStop) + 
@@ -88,7 +94,7 @@ tm_shape(grid_count) +
 
 Next, as we can see there are some busstop that is outside Singapore. In this case it will be exclude.
 
-Removing the busstop outside Singapore
+Removing the Bus Stops outside Singapore
 
 ```{r}
 grid_count_rm <- grid_count %>%
@@ -97,6 +103,8 @@ grid_count_rm <- grid_count %>%
          !grid_id == 2135,
          !grid_id == 2104)
 ```
+
+New Plot after removed the Bus Stops outside Singapore
 
 ```{r}
 tm_shape(grid_count_rm) +
@@ -120,7 +128,7 @@ tm_shape(grid_count_rm) +
 
 ### **Aspatial Data**
 
-Import the aspatial data into R
+Import the aspatial data into R, the data that will be use here is the "origin_destination_bus_202310"
 
 ```{r}
 busTrips <- read_csv("data/aspatial/origin_destination_bus_202310.csv")
@@ -204,6 +212,8 @@ grid_bus$BUS_STOP_N <- as.factor(grid_bus$BUS_STOP_N)
 ```
 
 ### **Joining aspatial and geospatial**
+
+Joining both data together
 
 ```{r}
 Trips <- left_join(BusTrips_comb,grid_bus,
