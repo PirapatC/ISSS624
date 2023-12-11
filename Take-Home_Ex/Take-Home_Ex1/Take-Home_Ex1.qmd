@@ -146,7 +146,7 @@ busTrips$ORIGIN_PT_CODE <- as.factor(busTrips$ORIGIN_PT_CODE)
 busTrips$DESTINATION_PT_CODE <- as.factor(busTrips$DESTINATION_PT_CODE)
 ```
 
-## Data Wrangling 
+## Data Wrangling
 
 ### **Aspatial Data Wrangling**
 
@@ -515,7 +515,7 @@ wm_idw <- Trips %>%
 
 ## **Local Moran**
 
-### Weekday Morning 
+### Weekday Morning
 
 ```{r}
 lisa_WDM <- wm_idw %>% 
@@ -603,7 +603,7 @@ tm_shape(lisa_sig_WDA) +
   tm_borders(alpha = 0.4)
 ```
 
-### Weekend Morning 
+### Weekend Morning
 
 ```{r}
 lisa_WEM <- wm_idw %>% 
@@ -691,7 +691,7 @@ tm_shape(lisa_sig_WEE) +
   tm_borders(alpha = 0.4)
 ```
 
-### LISA Map 
+### LISA Map
 
 Summary all the 4 category, below is the 4 LISA Map in 4 category (weekday_morning, weekday_afternoon, weekend_morning, weekend_evening) using tmap_arrange.
 
@@ -701,7 +701,7 @@ tmap_arrange(weekday_morning_localmoran, weekday_afternoon_localmoran,
              ncol = 2, nrow = 2)
 ```
 
-### Conclusion 
+### Conclusion
 
 Using the inverse distance weight, the map above displays the local Moran relationship between each hexagonal grid. The 2 top row is weekday morning and weekday afternoon. The 2 in bottom row is weekend morning and weekend afternoon.
 
