@@ -1,0 +1,75 @@
+---
+title: "Take-Home Excercise 2"
+date: "11 December 2023"
+date-modified: "last-modified"
+format: html
+execute: 
+  echo: true
+  eval: true
+  warning: false
+editor: visual
+---
+
+## Getting started
+
+Loading all the package that could be use for this into R.
+
+```{r}
+pacman::p_load(tmap, sf, sfdep, dplyr, mapview, ggpubr, tidyverse)
+```
+
+### **Geospatial Data**
+
+Import the BusStop data, this data included the information of all the bus stops located in Singapore. This data is provided by LTA DATA MALL.
+
+```{r}
+BusStop <- st_read(dsn = "data/geospatial",
+                   layer = "BusStop") %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+tmap_mode("view")
+tm_shape(BusStop) + 
+  tm_dots()
+```
+
+### **Hexagonal Grid Creation**
+
+The code chunk below uses the sf package to create a grid of polygons around bus stops with a specific cell size and then converts this grid into an sf object while assigning unique grid IDs to each cell.
+
+```{r}
+grid = st_make_grid(BusStop, c(500), what = "polygons", square = FALSE)
+# sf and add grid ID
+grid_sf = st_sf(grid) %>%
+  # add grid ID
+  mutate(grid_id = 1:length(lengths(grid)))
+```
+
+```{r}
+grid_sf$n_colli = lengths(st_intersects(grid_sf, BusStop))
+
+# remove grid without value of 0 (i.e. no points in side that grid)
+grid_count = filter(grid_sf,n_colli > 0 )
+```
+
+```{r}
+#tmap_mode("view")
+#tm_shape(grid_count) +
+  #tm_fill(
+    #col = "n_colli",  
+    #palette = "Greens",
+    #style = "cont",
+    #title = "Number of collisions",
+    #id = "grid_id",
+    #showNA = FALSE,
+    #alpha = 0.6,
+    #popup.vars = c(
+      #"Number of collisions: " = "n_colli"
+    #),
+    #popup.format = list(
+      #n_colli = list(format = "f", digits = 0)
+    #)
+  #) +
+  #tm_borders(col = "grey40", lwd = 0.7)
+```

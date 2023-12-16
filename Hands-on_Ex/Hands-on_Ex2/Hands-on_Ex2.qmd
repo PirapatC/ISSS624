@@ -1,6 +1,6 @@
 ---
 title: "Hands-on_Exercise2: 1.Spatial Weights and Applications, 2.Global Measures of Spatial Autocorrelation, 3.Local Measures of Spatial Autocorrelation"
-data: "22 November 2023"
+date: "22 November 2023"
 date-modified: "last-modified"
 format: html
 execute: 

@@ -1,6 +1,6 @@
 ---
-title: "In-class Exercise4: Preparing Spatial Interaction Modelling Variables"
-data: "9 December 2023"
+title: "In-class Exercise 4: Preparing Spatial Interaction Modelling Variables"
+date: "9 December 2023"
 date-modified: "last-modified"
 format: html
 execute: 

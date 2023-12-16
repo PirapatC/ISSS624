@@ -1,6 +1,6 @@
 ---
 title: "In-class Exercise 3"
-data: "2 December 2023"
+date: "2 December 2023"
 date-modified: "last-modified"
 format: html
 execute: 
