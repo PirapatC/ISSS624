@@ -1,6 +1,6 @@
 ---
-title: "Take-Home Excercise 2"
-date: "11 December 2023"
+title: "Take-Home Excercise 2: Applied Spatial Interaction Models: An analysis of commuter flows on Singapore's public buses"
+date: "10 December 2023"
 date-modified: "last-modified"
 format: html
 execute: 
@@ -10,15 +10,57 @@ execute:
 editor: visual
 ---
 
+# An Analysis of Public Bus Flow in Singapore During Weekday Morning Peak From 6 to 9 a.m.
+
+## **Setting the Scene**
+
+Why do people who live in cities get up early in the morning to travel from their homes to their places of employment? What effects will the elimination of a public bus service have on the commuters who live in the bus route's corridor? Transport operators and urban managers have to deal with these and many other issues regarding urban mobility.
+
+Usually, the commuter survey is employed to provide an answer to this question. The commuter survey, however, is very expensive, labor-intensive, and time-consuming. In addition, cleaning and analyzing the survey data sometimes takes a long time. Therefore, it is not unexpected that the majority of the information was already outdated when the survey report was available!
+
+The digitalization of city-wide urban infrastructures, including public transportation, mass rapid transit, highways, and utilities, can yield data sets that can serve as a basis for monitoring patterns of movement over time and location. This is especially relevant in light of the current trend of widespread adoption of pervasive computing technology, such SMART cards for public transportation users and GPS on automobiles.
+
+The return on the investment made to gather and manage this data has unfortunately suffered since the rapidly expanding volume of geospatially referenced data has surpassed the planner's capacity to use and interpret the data.
+
+## **Motivation and Objective**
+
+There are two key factors that drive the at-home workout. First of all, despite the fact that there is a growing quantity of publicly accessible open data, there hasn't been much practice research done to demonstrate how these many data sources may be combined, examined, and modeled to aid in the creation of policies.
+
+Second, there is a general dearth of empirical studies demonstrating the application of geospatial data science and analysis (GDSA) to decision support.
+
+As a result, the assignment for this take-home exercise is to perform a case study to illustrate the potential utility of GDSA in integrating publically available data from various sources for creating spatial interaction models that identify the variables influencing public bus transit's urban mobility patterns.
+
+## Selecting the Ideal Time Range
+
+There are four possible transit behavior time frames to take into account:
+
+| Peak hour period             | Bus tap on time |
+|------------------------------|-----------------|
+| Weekday morning peak         | 6am to 9am      |
+| Weekday afternoon peak       | 5pm to 8pm      |
+| Weekend/holiday morning peak | 11am to 2pm     |
+| Weekend/holiday evening peak | 4pm to 7pm      |
+
+The weekday morning peak, from 6 to 9 am, will be the focus of this analysis. This would enable the study to concentrate on the movement of Singaporeans during the morning commute to their places of employment or education.
+
+## **The Data**
+
+Two types of data will be used for this study: aspatial data, which is made up of qualities that can be applied to the geospatial data, and geospatial data, which is made up of spatial features and their coordinate information.
+
 ## Getting started
 
-Loading all the package that could be use for this into R.
+Loading all the packages that could be use for this analysis into the R enviroment.
 
 ```{r}
-pacman::p_load(tmap, sf, sfdep, dplyr, mapview, ggpubr, tidyverse)
+pacman::p_load(sf, tmap, sfdep, tidyverse, stplanr, sp, reshape2, knitr,
+               httr, performance, Matrix, spflow, DT, units, ggpubr)
 ```
 
-### **Geospatial Data**
+## Import and prepare Data
+
+### Import Geospatial Data
+
+### Bus Stop Data
 
 Import the BusStop data, this data included the information of all the bus stops located in Singapore. This data is provided by LTA DATA MALL.
 
@@ -31,7 +73,8 @@ BusStop <- st_read(dsn = "data/geospatial",
 ```{r}
 tmap_mode("view")
 tm_shape(BusStop) + 
-  tm_dots()
+  tm_dots(col = 'green') +
+tm_view(set.zoom.limits = c(11,14))
 ```
 
 ### **Hexagonal Grid Creation**
@@ -54,22 +97,1031 @@ grid_count = filter(grid_sf,n_colli > 0 )
 ```
 
 ```{r}
-#tmap_mode("view")
-#tm_shape(grid_count) +
-  #tm_fill(
-    #col = "n_colli",  
-    #palette = "Greens",
-    #style = "cont",
-    #title = "Number of collisions",
-    #id = "grid_id",
-    #showNA = FALSE,
-    #alpha = 0.6,
-    #popup.vars = c(
-      #"Number of collisions: " = "n_colli"
-    #),
-    #popup.format = list(
-      #n_colli = list(format = "f", digits = 0)
-    #)
-  #) +
-  #tm_borders(col = "grey40", lwd = 0.7)
+tmap_mode("view")
+tm_shape(grid_count) +
+  tm_fill(
+    col = "n_colli",  
+    palette = "Greens",
+    style = "cont",
+    title = "Number of collisions",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+    popup.vars = c(
+      "Number of collisions: " = "n_colli"
+    ),
+    popup.format = list(
+      n_colli = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+tm_view(set.zoom.limits = c(11,14))
 ```
+
+Next, as we can see there are some busstop that is outside Singapore. In this case it will be exclude.
+
+Removing the Bus Stops outside Singapore using the code below
+
+```{r}
+grid_count_rm <- grid_count %>%
+  filter(!grid_id == 1767,
+         !grid_id == 2073,
+         !grid_id == 2135,
+         !grid_id == 2104)
+```
+
+Saving grid to RDS
+
+```{r}
+write_rds(grid_count_rm, "data/rds/grid.rds")
+rm(list = c('grid_count','grid_count_rm','grid_sf'))
+```
+
+```{r}
+grid = read_rds('data/rds/grid.rds')
+```
+
+### Master Planning Sub-Zone 2019
+
+Importing mpsz data for visualisation
+
+```{r}
+mpsz <- st_read(dsn = 'data/geospatial',
+                layer = 'MPSZ-2019') %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+glimpse(mpsz)
+```
+
+```{r}
+tmap_mode("view")
+tmap_options(check.and.fix = TRUE)
+tm_shape(mpsz)+
+  tm_polygons(col = 'grey')+
+  tm_layout(main.title = 'Singapore Planning Subzones',
+            main.title.position = 'center')+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2) +
+tm_view(set.zoom.limits = c(10,14))
+```
+
+```{r}
+tm_shape(mpsz) +
+  tm_polygons(col='grey', border.alpha = 0.1) +
+tm_shape(grid) +
+  tm_fill(
+    col = "n_colli",
+    palette = "Greens",
+    style = "cont",
+    title = "Number of collisions",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+    popup.vars = c(
+      "Number of collisions: " = "n_colli"
+    ),
+    popup.format = list(
+      n_colli = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+tm_view(set.zoom.limits = c(11,14))
+```
+
+### **Business Data**
+
+Import Business dataset as it can be use as attractiveness data.
+
+```{r}
+business <- st_read(dsn = "data/geospatial",
+                 layer = "Business") %>%
+  st_transform(crs = 3414)
+```
+
+### Retail Data
+
+Import Retail dataset as it can be use as attractiveness data.
+
+```{r}
+retail <- st_read(dsn = "data/geospatial",
+                  layer = "Retails") %>%
+  st_transform(crs = 3414)
+```
+
+### **Import Aspatial Data**
+
+### School Data
+
+**Geocoding using SLA API**
+
+The OneMap API will be utilized to geocode postal codes, and accessing geographical school data. These postal codes are available in the school's general information CSV file, which itself employs the OneMap API to retrieve longitude and latitude coordinates for each school. The SLA OneMap API will be used for geocoding by the code lines below. The CSV file format will be used for the input data. It will use the read_csv function of the readr package to read it into the R Studio environment. It will next utilize the httr package of R's collection of http call functions to send each individual record to OneMap's geocoding service.
+
+If all goes well with the geocoding, two tibble data.frames will be produced. They go by the names not_found and found. Not_found contains postal records that were not successfully geocoded, while found contains all entries that have been geocoded correctly.
+
+Finally, a unique identifier (POSTAL) shared by the two data tables will be used to combine the discovered data table with the original CSV data table. After that, the data table output will be saved as a found.csv file.
+
+```{r}
+url <- "https://www.onemap.gov.sg/api/common/elastic/search"
+
+csv <- read_csv('data/aspatial/Generalinformationofschools.csv')
+postcodes <- csv$postal_code
+
+found <- data.frame()
+not_found <- data.frame()
+
+for(postcode in postcodes){
+  query <- list('searchVal'=postcode, 'returnGeom'='Y','getAddrDetails'='Y','pageNum'='1')
+  res <- GET(url,query=query)
+  
+  if((content(res)$found) != 0){
+    found <- rbind(found,data.frame(content(res))[4:13])
+  } else {
+    not_found <- data.frame(postcode)
+  }
+}
+```
+
+The data that was found and that that was not found will then be combined using the code below that follows. frames into a single merged tibble data.frame. Simultaneously, the merged and not_found tibble data.frames will be written into distinct CSV files, schools and not_found, accordingly.
+
+```{r}
+#| eval: false
+merged <- merge(csv, found, by.x = 'postal_code', by.y = 'results.POSTAL', all = TRUE)
+write.csv(merged, file = 'data/aspatial/schools.csv')
+write.csv(not_found, file = 'data/aspatial/not_found.csv')
+```
+
+Subsequently, import the schools.csv file into the R environment while simultaneously purging the data of unnecessary fields and renaming some of them.
+
+```{r}
+schools <- read_csv(file = 'data/aspatial/schools.csv') %>%
+  rename(latitude = "results.LATITUDE",
+         longitude = "results.LONGITUDE")%>%
+  select(postal_code, school_name, latitude, longitude)
+```
+
+convert schools tibble data.frame data into a simple feature tibble data.frame called schools_sf by using values in latitude and longitude fields.
+
+```{r}
+schools_sf <- st_as_sf(schools, 
+                       coords = c('longitude','latitude'),    
+                       crs=4326) %>%
+  st_transform(crs = 3414)
+```
+
+### Trip Data
+
+Import bus trip data for trips analysis, the data that will be use here is the "origin_destination_bus_202310". This data is originally from the LTA DATA MALL.
+
+```{r}
+busTrips <- read_csv("data/aspatial/origin_destination_bus_202310.csv")
+```
+
+```{r}
+# busTrips <- read_csv("data/aspatial/origin_destination_bus_202308.csv")
+# busTrips <- read_csv("data/aspatial/origin_destination_bus_202309.csv")
+
+busTrips$ORIGIN_PT_CODE <- as.factor(busTrips$ORIGIN_PT_CODE)
+busTrips$DESTINATION_PT_CODE <- as.factor(busTrips$DESTINATION_PT_CODE)
+```
+
+### HDB Data
+
+Approximate population was calculated from total dwelling units using HDB data. Propulsiveness statistics will be derived from this population.
+
+```{r}
+hdb <- read_csv('data/aspatial/hdb.csv')
+```
+
+```{r}
+hdb_sf <- hdb %>%
+  rename(latitude = lat, 
+         longitude = lng) %>%
+  select(latitude, longitude, total_dwelling_units) %>%
+  st_as_sf(coords = c('longitude','latitude'), 
+           crs=4326) %>%
+  st_transform(crs = 3414)
+```
+
+## OD Flows of the passenger trips
+
+### **Trip count**
+
+Calculating trip count of weekday morning peak hours 6am to 9am
+
+```{r}
+BusTripsWeekDayMorning <- busTrips %>%
+  filter(DAY_TYPE == "WEEKDAY", 
+         TIME_PER_HOUR >= 6, 
+         TIME_PER_HOUR <= 9) %>%
+  select(ORIGIN_PT_CODE,DESTINATION_PT_CODE,TOTAL_TRIPS) %>%
+  rename(DESTIN_PT_CODE = DESTINATION_PT_CODE)
+```
+
+### **Creating the Flow Data**
+
+Prepare a flow data, making object to represent bus stop location to a grid
+
+```{r}
+busStops_grid <- st_intersection(BusStop, grid) %>%
+  select(BUS_STOP_N, grid_id) %>%
+  st_drop_geometry()
+```
+
+Proceed to modify the trip's identity by assigning a grid id to the origin and destination instead of bus stop codes.
+
+```{r}
+od_data <- left_join(BusTripsWeekDayMorning , busStops_grid,
+            by = c("ORIGIN_PT_CODE" = "BUS_STOP_N")) %>%
+  rename(ORIGIN_BS = ORIGIN_PT_CODE,
+         ORIGIN_GRID = grid_id,
+         DESTIN_BS = DESTIN_PT_CODE)
+```
+
+Before continue, it is a good for us to check for duplicating records using the code below.
+
+```{r}
+duplicate <- od_data %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+```
+
+In the event that duplicate records are found, the unique records will be retained according to the code below.
+
+```{r}
+od_data <- unique(od_data)
+```
+
+Next, we will update od_data data frame with the bus stop codes.
+
+```{r}
+od_data <- left_join(od_data , busStops_grid,
+            by = c("DESTIN_BS" = "BUS_STOP_N")) 
+```
+
+```{r}
+duplicate <- od_data %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+```
+
+```{r}
+od_data <- unique(od_data)
+```
+
+```{r}
+od_data <- od_data %>%
+  rename(DESTIN_GRID = grid_id) %>%
+  drop_na() %>%
+  group_by(ORIGIN_GRID, DESTIN_GRID) %>%
+  summarise(TRIPS = sum(TOTAL_TRIPS))
+```
+
+The `od_data` data.frame will look similar the table below.
+
+```{r}
+kable(head(od_data, n = 5))
+```
+
+```{r}
+write_rds(od_data, "data/rds/od_data.rds")
+```
+
+```{r}
+od_data <- read_rds("data/rds/od_data.rds")
+```
+
+```{r}
+od_data1 <- od_data[od_data$ORIGIN_GRID!=od_data$DESTIN_GRID,]
+```
+
+```{r}
+flowLine <- od2line(flow = od_data1, zones = grid, zone_code = "grid_id")
+```
+
+### **Visualising O-D Flow**
+
+```{r}
+head(flowLine)
+```
+
+#### O-D Flow unfiltered trips
+
+The first O-D flow here is named firstflow, it is O-D flow for unfiltered trips.
+
+```{r}
+firstflow <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+  tm_shape(grid) +
+  tm_fill(alpha = 0.5)+
+  tm_borders(col='black')+
+flowLine %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           col = 'green',
+           style = "quantile",
+           palette = 'green',
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_view(set.zoom.limits = c(11,14))
+
+firstflow
+```
+
+#### O-D Flow filtered for 10000 or more trips
+
+The first O-D flow here is named secondflow, it is O-D flow filtered for 10000 or more trips
+
+```{r}
+secondflow <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+  tm_shape(grid) +
+  tm_fill(alpha = 0.5)+
+  tm_borders(col='black')+
+flowLine %>%
+  filter(TRIPS >= 10000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           col = 'green',
+           style = "quantile",
+           palette = 'green',
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_view(set.zoom.limits = c(11,14))
+
+secondflow
+```
+
+#### O-D Flow filtered for 20000 or more trips
+
+The first O-D flow here is named thirdflow, it is O-D flow filtered for 20000 or more trips
+
+```{r}
+thridflow <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+  tm_shape(grid) +
+  tm_fill(alpha = 0.5)+
+  tm_borders(col='black')+
+flowLine %>%
+  filter(TRIPS >= 20000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           col = 'green',
+           style = "quantile",
+           palette = 'green',
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_view(set.zoom.limits = c(11,14))
+
+thridflow
+```
+
+#### O-D Flow filtered for 40000 or more trips
+
+The first O-D flow here is named fourthflow, it is O-D flow filtered for 40000 or more trips
+
+```{r}
+fourthflow <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+  tm_shape(grid) +
+  tm_fill(alpha = 0.5)+
+  tm_borders(col='black')+
+flowLine %>%
+  filter(TRIPS >= 40000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           col = 'green',
+           style = "quantile",
+           palette = 'green',
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_view(set.zoom.limits = c(11,14))
+
+fourthflow
+```
+
+Now, visualizing all the four O-D flows by using tmap_arrange to compare all the polts.
+
+```{r}
+tmap_arrange(firstflow, secondflow, thridflow, fourthflow,
+          ncol = 2,
+          nrow = 2)
+```
+
+This indicates that fewer visits were taken between the grids the farther apart they were. The majority of the busy, intense visits are concentrated in small, nearby areas.
+
+## **Spatial Interaction Model Data Preparation**
+
+### Wrangling Data on Propulsiveness
+
+The origin grid will contain 3 propulsiveness variables:
+
+#### Number of population per grid
+
+The total amount of dwellings will be used as an indicator for the grid's population.
+
+```{r}
+grid_prop <- st_join(hdb_sf,grid, join = st_within) %>%
+  select(total_dwelling_units, grid_id) %>%
+  st_drop_geometry() %>%
+  rename(POPULATION_COUNT = total_dwelling_units)
+grid_prop <- grid %>%
+  left_join(grid_prop, by = c('grid_id' = 'grid_id')) 
+
+grid_prop$POPULATION_COUNT <- ifelse(
+  is.na(grid_prop$POPULATION_COUNT),
+  0.99, grid_prop$POPULATION_COUNT)
+
+grid_prop$POPULATION_COUNT <- ifelse(
+  grid_prop$POPULATION_COUNT == 0,
+  0.99, grid_prop$POPULATION_COUNT)
+
+grid_prop <- grid_prop %>%
+  group_by(grid_id, n_colli) %>%
+  summarise(POPULATION_COUNT = sum(POPULATION_COUNT))
+```
+
+#### Number of HDB per grid
+
+The intersection of the HDB point with the hexagonal polygon of the grid will be used to count the number of HDB per grid.
+
+```{r}
+grid_prop$HDB_COUNT <- lengths (
+  st_intersects(
+    grid,hdb_sf))
+
+grid_prop$HDB_COUNT <- ifelse(
+  grid_prop$HDB_COUNT == 0,
+  0.99, grid_prop$HDB_COUNT)
+```
+
+#### Number of Bus Station per grid
+
+The number of collisions calculated earlier when viewing the hexagons will be used to determine the number of bus stations per grid.
+
+```{r}
+grid_prop <- grid_prop %>%
+  st_drop_geometry() %>%
+  rename(BUS_N = n_colli)
+
+grid_prop$BUS_N <- ifelse(
+  grid_prop$BUS_N == 0,
+  0.99, grid_prop$BUS_N)
+```
+
+```{r}
+write_rds(grid_prop,'data/rds/grid_prop.rds')
+```
+
+```{r}
+grid_prop <- read_rds('data/rds/grid_prop.rds')
+```
+
+Combining all of the 3 propulsive variables in the flow data
+
+```{r}
+flowLine <- flowLine %>%
+left_join(grid_prop, by = c('ORIGIN_GRID' = 'grid_id'))
+```
+
+```{r}
+grid_plot <- grid %>%
+  select(grid_id) %>%
+  left_join(grid_prop)
+```
+
+Plot out the graph using the secondflow above (O-D flow filtered for 10000 or more trips) as a based.
+
+First, number of population per grid
+
+```{r}
+plot_pop <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+tm_shape(grid_plot) +
+  tm_fill(
+    col = "POPULATION_COUNT",
+    palette = "Greens",
+    style = "cont",
+    title = "Population",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+flowLine %>%  
+  filter(TRIPS >= 10000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           style = "quantile",
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_layout(legend.text.size = 0.35)
+
+plot_pop
+```
+
+Second, Number of HDB per grid
+
+```{r}
+plot_hdb <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+tm_shape(grid_plot) +
+  tm_fill(
+    col = "HDB_COUNT",
+    palette = "Greens",
+    style = "cont",
+    title = "Number of HDB",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+flowLine %>%  
+  filter(TRIPS >= 10000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           style = "quantile",
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_layout(legend.text.size = 0.35)
+
+plot_hdb
+```
+
+Third, Number of Bus Station per grid
+
+```{r}
+plot_bus <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+tm_shape(grid_plot) +
+  tm_fill(
+    col = "BUS_N",
+    palette = "Greens",
+    style = "cont",
+    title = "Number of Bus Stop",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+flowLine %>%  
+  filter(TRIPS >= 10000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           style = "quantile",
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_layout(legend.text.size = 0.35)
+
+plot_bus
+```
+
+Now, combine all the plot together with the original OD flow.
+
+```{r}
+tmap_mode("plot")
+
+tmap_arrange(secondflow, plot_pop, plot_hdb, plot_bus,
+            ncol=2, nrow=2)
+```
+
+Plots indicate that travel is concentrated on the grid containing attribute variables like population and HDB. Nevertheless, since certain grids have a lot of bus stops but few journeys, it is difficult to consider the number of bus stops as a push or pull component.
+
+### **Attractiveness Data Wrangling**
+
+As we import the 3 different attractiveness data earlier which is Business, Retail and School data. This 3 attractiveness variable embedded into the destination grid.
+
+#### Number of Business per grid
+
+The intersection of the business location with the hexagonal polygon grid will be used to count the number of businesses per grid.
+
+```{r}
+grid_att <- grid %>%
+  select (-c(n_colli)) %>%
+  st_drop_geometry()
+grid_att$BUSINESS_COUNT <- lengths(
+  st_intersects(grid,business)
+)
+
+grid_att$BUSINESS_COUNT <- ifelse(
+  grid_att$BUSINESS_COUNT == 0,
+  0.99, grid_att$BUSINESS_COUNT)
+```
+
+#### Number of Retail per grid
+
+The intersection of the retail location with the hexagonal polygon grid will be used to count the number of retial per grid.
+
+```{r}
+grid_att$RETAIL_COUNT <- lengths(
+  st_intersects(grid,retail)
+)
+
+grid_att$RETAIL_COUNT <- ifelse(
+  grid_att$RETAIL_COUNT == 0,
+  0.99, grid_att$RETAIL_COUNT
+)
+```
+
+#### Number of School per grid
+
+The intersection of the school location with the hexagonal polygon grid will be used to count the number of school per grid.
+
+```{r}
+grid_att$SCHOOL_COUNT <- lengths(
+  st_intersects(grid,schools_sf)
+)
+
+grid_att$SCHOOL_COUNT <- ifelse(
+  grid_att$SCHOOL_COUNT == 0,
+  0.99, grid_att$SCHOOL_COUNT)
+```
+
+```{r}
+write_rds(grid_att, "data/rds/grid_att.rds") 
+```
+
+```{r}
+grid_att <- read_rds('data/rds/grid_att.rds')
+```
+
+Combining all of the 3 attractiveness variables in the flow data
+
+```{r}
+flowLine <- flowLine %>%
+left_join(grid_att, by = c('DESTIN_GRID' = 'grid_id'))
+```
+
+```{r}
+grid_plot <- grid %>%
+  select(grid_id) %>%
+  left_join(grid_att)
+```
+
+Plot out the graph using the secondflow above (O-D flow filtered for 10000 or more trips) as a based.
+
+1.  Number of Business per grid
+
+```{r}
+plot_business <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+tm_shape(grid_plot) +
+  tm_fill(
+    col = "BUSINESS_COUNT",
+    palette = "Greens",
+    style = "cont",
+    title = "Number of Business",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+flowLine %>%  
+  filter(TRIPS >= 10000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           style = "quantile",
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_layout(legend.text.size = 0.35)
+
+plot_business
+```
+
+2.  Number of Retail per grid
+
+```{r}
+plot_retail <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+tm_shape(grid_plot) +
+  tm_fill(
+    col = "RETAIL_COUNT",
+    palette = "Greens",
+    style = "cont",
+    title = "Number of Retail Store",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+flowLine %>%  
+  filter(TRIPS >= 10000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           style = "quantile",
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_layout(legend.text.size = 0.35)
+
+plot_retail
+```
+
+3.  Number of School per grid
+
+```{r}
+plot_school <- tm_shape(mpsz) +
+  tm_polygons(col = 'grey', border.alpha = 0.1) +
+tm_shape(grid_plot) +
+  tm_fill(
+    col = "SCHOOL_COUNT",
+    palette = "Greens",
+    style = "cont",
+    title = "Number of School",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.6,
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7) +
+flowLine %>%  
+  filter(TRIPS >= 10000) %>%
+tm_shape() +
+  tm_lines(lwd = "TRIPS",
+           style = "quantile",
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3) +
+  tm_layout(legend.text.size = 0.35)
+
+plot_school
+```
+
+Now, combine all the plot together with the original OD flow.
+
+```{r}
+tmap_mode("plot")
+
+tmap_arrange(secondflow, plot_business, plot_retail, plot_school,
+            ncol=2, nrow=2)
+```
+
+The flow of bus rides is visible in the charts above. It is evident from the bottom right plot (number of school) that a grid with a lot of flow will also have some schools in it. However, nothing comparable to this can be observed on the business and retail plots.
+
+### Creating a Origin-Destination Matrix
+
+In addition to the total number of trips made between each hexagon of origin and destination, an origin-destination matrix, or O-D matrix, is also needed. The geographic separation between the centroid of each hexagon cell in the grid will be shown in this matrix. There are various steps involved in creating an OD-Matrix.
+
+Converting the grids into spatial representations that include column grid ID and geometry
+
+```{r}
+grid_sp <- grid %>%
+  select (-c(n_colli)) %>%
+  as('Spatial')
+grid_sp
+```
+
+Making a matrix by calculating the distance between the polygon centroid using the spDists function of the sp package
+
+```{r}
+dist <- spDists(grid_sp, 
+                longlat = FALSE)
+
+head(dist, n=c(10, 10))
+```
+
+Next, store the column and row ids as the grid ID of the hexagon cells.
+
+```{r}
+grid_ids <- grid_sp$grid_id
+colnames(dist) <- paste0(grid_ids)
+rownames(dist) <- paste0(grid_ids)
+```
+
+converting the matrix into a column-based format using melt to make it easier to combine with the main flow data.
+
+```{r}
+distPair <- melt(dist) %>%
+  rename(dist = value)
+head(distPair, 10)
+```
+
+To avoid modeling mistake, first modify the intra-zonal distance's minimum value from 0 to 50. This is the summary of distPair.
+
+```{r}
+distPair %>%
+  filter(dist > 0) %>%
+  summary()
+
+distPair$dist <- ifelse(distPair$dist == 0,
+                        50, distPair$dist)
+
+distPair <- distPair %>%
+  rename(orig = Var1,
+         dest = Var2)
+```
+
+```{r}
+write_rds(distPair, "data/rds/distPair.rds") 
+```
+
+```{r}
+distPair <- read_rds('data/rds/distPair.rds')
+summary(distPair)
+```
+
+Join the distance column with the flow data
+
+```{r}
+flowLine <- flowLine %>%
+left_join(distPair, by = c('DESTIN_GRID' = 'dest', 'ORIGIN_GRID' = 'orig'))
+```
+
+```{r}
+write_rds(flowLine, "data/rds/flowData.rds") 
+```
+
+```{r}
+flowData <- read_rds("data/rds/flowData.rds")
+flowData$ORIGIN_GRID <- as.factor(flowData$ORIGIN_GRID)
+flowData$DESTIN_GRID <- as.factor(flowData$DESTIN_GRID)
+```
+
+## **Spatial Interaction Models**
+
+### **Unconstrained Model**
+
+```{r}
+unconSIM <- glm(formula = TRIPS ~ 
+                log(POPULATION_COUNT) +
+                log(HDB_COUNT) +
+                log(BUS_N) +
+                log(BUSINESS_COUNT) +
+                log(RETAIL_COUNT) +
+                log(SCHOOL_COUNT) +
+                log(dist),
+              family = poisson(link = "log"),
+              data = flowData,
+              na.action = na.exclude)
+summary(unconSIM)
+```
+
+### **Origin Constrained Model**
+
+Figure below shows the general formula of the origin-constrained model.
+
+![](https://isss624.netlify.app/in-class_ex/in-class_ex4/img/image2.jpg)
+
+Code chunk below shows the calibration of the model by using [`glm()`](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/glm) of R and *flow_data*.
+
+```{r}
+originSIM <- glm(formula = TRIPS ~ 
+                ORIGIN_GRID +
+                log(BUSINESS_COUNT) +
+                log(RETAIL_COUNT) +
+                log(SCHOOL_COUNT) +
+                log(dist),
+              family = poisson(link = "log"),
+              data = flowData,
+              na.action = na.exclude)
+summary(originSIM)
+```
+
+### **Doubly constrained model**
+
+In this section, we will fit a doubly constrained SIM by using the general formula below:
+
+![](https://isss624.netlify.app/in-class_ex/in-class_ex4/img/image4.jpg)
+
+```{r}
+dbcSIM <- glm(formula = TRIPS ~ 
+                ORIGIN_GRID + 
+                DESTIN_GRID + 
+                log(dist),
+              family = poisson(link = "log"),
+              data = flowData,
+              na.action = na.exclude)
+summary(dbcSIM)
+```
+
+### **Destination Constrained Model**
+
+```{r}
+decSIM <- glm(formula = TRIPS ~ 
+                log(POPULATION_COUNT) +
+                log(HDB_COUNT) +
+                log(BUS_N) +
+                DESTIN_GRID +
+                log(dist),
+              family = poisson(link = "log"),
+              data = flowData,
+              na.action = na.exclude)
+summary(decSIM)
+```
+
+### **Model Comparison**
+
+### **Goodness of fit**
+
+The subsequent question we want to know the answer to in statistical modeling is how effectively the explanatory factors account for the variance in the dependent variable.
+
+We will utilize R-squared statistics to try and answer this question. R-squared is not a result of glm(), though. Therefore, we will use the code chunk below to construct a method called CalcRSquared.
+
+```{r}
+CalcRSquared <- function(observed,estimated){
+  r <- cor(observed,estimated)
+  R2 <- r^2
+  R2
+}
+```
+
+R-Squared for Unconstrained Model
+
+```{r}
+CalcRSquared(unconSIM$data$TRIPS, unconSIM$fitted.values)
+```
+
+R-Squared for Originconstrained Model
+
+```{r}
+CalcRSquared(originSIM$data$TRIPS, originSIM$fitted.values)
+```
+
+R-Squared for Doubly Constrained Model
+
+```{r}
+CalcRSquared(dbcSIM$data$TRIPS, dbcSIM$fitted.values)
+```
+
+R-Squared for Destination Constrained Model
+
+```{r}
+CalcRSquared(decSIM$data$TRIPS, decSIM$fitted.values)
+```
+
+From the R-Squared results, Doubly Constrained Model perform the best among all achieving the highest r square (0.469) about 47%.
+
+### RMSE
+
+```{r}
+model_list <- list(unconstrained=unconSIM,
+                   originConstrained=originSIM,
+                   destinationConstrained=decSIM,
+                   doublyConstrained=dbcSIM)
+```
+
+```{r}
+compare_performance(model_list,
+                    metrics = "RMSE")
+```
+
+The model that performs the best out of all the ones constructed is double constrained with the lowest RMSE (732.970), matching the R-Squared test.
+
+### Visualizing Fitted Values
+
+```{r}
+flowData$unconTRIPS <- unconSIM$fitted.values
+flowData$orcTRIPS <- originSIM$fitted.values
+flowData$decTRIPS <- decSIM$fitted.values
+flowData$dbcTRIPS <- dbcSIM$fitted.values
+```
+
+```{r}
+uncon_p <- ggplot(data = flowData,
+                aes(x = TRIPS,
+                    y = unconTRIPS)) +
+  geom_point() +
+  geom_smooth(method = lm)
+
+origin_p <- ggplot(data = flowData,
+                aes(x = TRIPS,
+                    y = orcTRIPS)) +
+  geom_point() +
+  geom_smooth(method = lm)
+
+dec_p <- ggplot(data = flowData,
+                aes(x = TRIPS,
+                    y = decTRIPS)) +
+  geom_point() +
+  geom_smooth(method = lm)
+
+dbc_p <- ggplot(data = flowData,
+                aes(x = TRIPS,
+                    y = dbcTRIPS)) +
+  geom_point() +
+  geom_smooth(method = lm)
+```
+
+```{r}
+ggarrange(uncon_p, origin_p, dec_p, dbc_p,
+          ncol = 2,
+          nrow = 2)
+```
+
+The Top left plot is Unconstrained
+
+The Bottom left plot is Destination Constrained
+
+The Top right plot is Origin Constrained
+
+The Bottom right plot is Doubly Constrained
