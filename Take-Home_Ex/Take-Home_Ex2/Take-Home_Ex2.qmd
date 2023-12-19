@@ -156,7 +156,7 @@ glimpse(mpsz)
 ```
 
 ```{r}
-tmap_mode("view")
+tmap_mode("plot")
 tmap_options(check.and.fix = TRUE)
 tm_shape(mpsz)+
   tm_polygons(col = 'grey')+
@@ -168,6 +168,7 @@ tm_view(set.zoom.limits = c(10,14))
 ```
 
 ```{r}
+tmap_mode("plot")
 tm_shape(mpsz) +
   tm_polygons(col='grey', border.alpha = 0.1) +
 tm_shape(grid) +
@@ -413,6 +414,7 @@ head(flowLine)
 The first O-D flow here is named firstflow, it is O-D flow for unfiltered trips.
 
 ```{r}
+tmap_mode("plot")
 firstflow <- tm_shape(mpsz) +
   tm_polygons(col = 'grey', border.alpha = 0.1) +
   tm_shape(grid) +
@@ -437,6 +439,7 @@ firstflow
 The first O-D flow here is named secondflow, it is O-D flow filtered for 10000 or more trips
 
 ```{r}
+tmap_mode("plot")
 secondflow <- tm_shape(mpsz) +
   tm_polygons(col = 'grey', border.alpha = 0.1) +
   tm_shape(grid) +
@@ -462,6 +465,7 @@ secondflow
 The first O-D flow here is named thirdflow, it is O-D flow filtered for 20000 or more trips
 
 ```{r}
+tmap_mode("plot")
 thridflow <- tm_shape(mpsz) +
   tm_polygons(col = 'grey', border.alpha = 0.1) +
   tm_shape(grid) +
@@ -487,6 +491,7 @@ thridflow
 The first O-D flow here is named fourthflow, it is O-D flow filtered for 40000 or more trips
 
 ```{r}
+tmap_mode("plot")
 fourthflow <- tm_shape(mpsz) +
   tm_polygons(col = 'grey', border.alpha = 0.1) +
   tm_shape(grid) +
@@ -510,6 +515,7 @@ fourthflow
 Now, visualizing all the four O-D flows by using tmap_arrange to compare all the polts.
 
 ```{r}
+tmap_mode("plot")
 tmap_arrange(firstflow, secondflow, thridflow, fourthflow,
           ncol = 2,
           nrow = 2)
@@ -602,6 +608,7 @@ Plot out the graph using the secondflow above (O-D flow filtered for 10000 or mo
 First, number of population per grid
 
 ```{r}
+tmap_mode("plot")
 plot_pop <- tm_shape(mpsz) +
   tm_polygons(col = 'grey', border.alpha = 0.1) +
 tm_shape(grid_plot) +
@@ -631,6 +638,7 @@ plot_pop
 Second, Number of HDB per grid
 
 ```{r}
+tmap_mode("plot")
 plot_hdb <- tm_shape(mpsz) +
   tm_polygons(col = 'grey', border.alpha = 0.1) +
 tm_shape(grid_plot) +
@@ -660,6 +668,7 @@ plot_hdb
 Third, Number of Bus Station per grid
 
 ```{r}
+tmap_mode("plot")
 plot_bus <- tm_shape(mpsz) +
   tm_polygons(col = 'grey', border.alpha = 0.1) +
 tm_shape(grid_plot) +
